@@ -16,7 +16,21 @@ namespace octet {
     // scene for drawing box
     ref<visual_scene> app_scene;
 
-	dynarray<vec3p> sites;
+	struct site {
+		float x;
+		float y;
+		float z;
+
+		site() = default;
+
+		site(float _x, float _y, float _z) {
+			x = _x;
+			y = _y;
+			z = _z;
+		}
+	};
+
+	dynarray<site> sites;
 
 	mouse_look mouse_look_helper;
 	helper_fps_controller fps_helper;
@@ -36,17 +50,15 @@ namespace octet {
 	  fps_helper.init(this);
       app_scene =  new visual_scene();
       app_scene->create_default_camera_and_lights();
-	  app_scene->get_camera_instance(0)->get_node()->translate(vec3(0, 4, 0));
-	  //app_scene->get_camera_instance(0)->get_node()->translate(vec3(0, 120, 0));
-	  //app_scene->get_camera_instance(0)->get_node()->rotate(-45,vec3(10, 0, 0));
 	  the_camera = app_scene->get_camera_instance(0);
 	  the_camera->get_node()->translate(vec3(0, 4, 0));
+	  the_camera->get_node()->rotate(180, vec3(0, 180, 0));
 	  the_camera->set_far_plane(10000);
 
       material *red = new material(vec4(1, 0, 0, 1));
 	  material *green = new material(vec4(0, 1, 0, 1));
-	  material *white = new material(vec4(0, 0, 0, 1));
-	  material *black = new material(vec4(1, 1, 1, 1));
+	  material *black = new material(vec4(0, 0, 0, 1));
+	  material *white = new material(vec4(1, 1, 1, 1));
 	  
 	  mat4t mat;
 
@@ -63,14 +75,11 @@ namespace octet {
 	  printf("adding sites...\n");
 	  srand(100);
 	  for (int i = 0; i < 10; i++) {
-		  //sites.push_back(vec3(rand() % 100, 0, rand() % 100));
-		  int x = rand() % 100;
-		  int z = rand() % 100;
-		  printf("x: %d | z: %d\n", x, z);
-		  // adding sites as cylinders
-		  //sites.end;
-		  mat.translate(x, 0, z);
-		  app_scene->add_shape(mat, new mesh_cylinder(vec3(2, 2, 2), 2), black, true);
+		  sites.push_back(site(rand() % 100, 0, rand() % 100));
+		  printf("x: %f | z: %f\n",  sites[i].x,  sites[i].z);
+		  // adding sites as spheres
+		  mat.translate(sites[i].x, sites[i].y, sites[i].z);
+		  app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), .2), black, true);
 	  }
 
 	  // player from example_fps.h
@@ -106,30 +115,11 @@ namespace octet {
 
       fps_helper.update(player_node, cam_node);
 
-
-	/*  {
-		  if (app::is_key_down(key_up)) {
-			  cam_node->translate(vec3(0, 0, -1));
-		  }
-		  if (app::is_key_down(key_down)) {
-			  cam_node->translate(vec3(0, 0, 1));
-		  }
-		  if (app::is_key_down(key_left)) {
-			  cam_node->rotate(5, vec3(0, 1, 0));
-		  }
-		  if (app::is_key_down(key_right)) {
-			  cam_node->rotate(-5, vec3(0, 1, 0));
-		  }
-	  }*/
-
       // update matrices. assume 30 fps.
       app_scene->update(1.0f/30);
 
       // draw the scene
       app_scene->render((float)vx / vy);
-
-      // tumble the box  (there is only one mesh instance)
-      //scene_node *node = app_scene->get_mesh_instance(0)->get_node();
 
     }
   };
