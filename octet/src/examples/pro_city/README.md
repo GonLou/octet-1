@@ -11,6 +11,7 @@ A score will ensure your name in Hall of Fame. This HoF is recorded in a text fi
 - **Voronoi diagram**,  by Wikipedia, in the https://en.wikipedia.org/wiki/Voronoi_diagram 
 - **Fortune’s algorithm and implementation**, by Algorithms and Stuff, in the http://blog.ivank.net/fortunes-algorithm-and-implementation.html
 - **How to: Draw the Voronoi Diagram**, by sevesixfive, in the http://765.blogspot.co.uk/2009/09/how-to-draw-voronoi-diagram.html
+- **???**, by ???, in the http://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 
 **Goncalo Lourenco**
 October/November 2015

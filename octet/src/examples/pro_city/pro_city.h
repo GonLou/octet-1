@@ -17,21 +17,20 @@ namespace octet {
 	// defining size 
 	CONST int MAX_WIDTH = 200;
 	CONST int MAX_HEIGHT = 200;
-	CONST int BOUNDARIES = 50;
+	CONST int BOUNDARIES = 100;
+	CONST int MAX_SITES = 100;
 
     // scene for drawing box
     ref<visual_scene> app_scene;
 
-	struct my_coords {
+	struct point {
 		float x;
-		float y;
 		float z;
 
-		my_coords() = default;
+		point() = default;
 
-		my_coords(float _x, float _y, float _z) {
+		point(float _x, float _z) {
 			x = _x;
-			y = _y;
 			z = _z;
 		}
 	};
@@ -52,10 +51,10 @@ namespace octet {
 		}
 	};
 
-	dynarray<my_coords> site;
-	dynarray<my_edge> temp_site_edge;
-	dynarray<my_edge> final_site_edge;
-	dynarray<my_coords> voronoi_vertex;
+	dynarray<point> site;
+	//dynarray<my_edge> temp_site_edge;
+	dynarray<my_edge> site_edge;
+	dynarray<point> voronoi_vertex;
 
 
 	mouse_look mouse_look_helper;
@@ -66,9 +65,16 @@ namespace octet {
 	ref<camera_instance> the_camera;
 
 	// calculates neighbours
-	static int square_distance(const my_coords& vertex, int x, int z) {
+	static int square_distance(const point& vertex, int x, int z) {
 		int xd = x - vertex.x;
 		int zd = z - vertex.z;
+		return (xd * xd) + (zd * zd);
+	}
+
+	// calculates distance
+	static float distance(const point& vertex1, const point& vertex2) {
+		int xd = vertex2.x - vertex1.x;
+		int zd = vertex2.z - vertex1.z;
 		return (xd * xd) + (zd * zd);
 	}
 
@@ -76,6 +82,86 @@ namespace octet {
 	int random_int(int min, int max) {
 		return rand() % (max - min + 1) + min;
 	}
+
+	bool do_intersect(my_edge& p1, my_edge& p2)
+		/*bool get_line_intersection(float p0_x, float p0_y, float p1_x, float p1_y,
+			float p2_x, float p2_y, float p3_x, float p3_y, float *i_x, float *i_y)*/
+	{
+
+		if (p1.x1 != p2.x1 && p1.z1 != p2.z1) return false;
+		if (p1.x2 != p2.x2 && p1.z2 != p2.z2) return false;
+
+		float s1_x, s1_y, s2_x, s2_y;
+		s1_x = p1.x2 - p1.x1;     
+		s1_y = p1.z2 - p1.z1;
+		s2_x = p2.x2 - p2.x1;     
+		s2_y = p2.z2 - p2.z1;
+
+		float s, t;
+		s = (-s1_y * (p1.x1 - p2.x1) + s1_x * (p1.z1 - p2.z1)) / (-s2_x * s1_y + s1_x * s2_y);
+		t = (s2_x * (p1.z1 - p2.z1) - s2_y * (p1.x1 - p2.x1)) / (-s2_x * s1_y + s1_x * s2_y);
+
+		if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
+		{
+			// Collision detected
+			//if (i_x != NULL)
+			float i_x = p1.x1 + (t * s1_x);
+			//if (i_y != NULL)
+			float i_y = p1.z1 + (t * s1_y);
+			printf("collision at %f,%f\n", i_x, i_y);
+			return true;
+		}
+
+		return false; // No collision
+	}
+
+	void add_sites(mat4t &mat) {
+		material *black = new material(vec4(0, 0, 0, 1));
+
+		int count = 0;
+		printf("...\nadding sites...\n");
+		srand(99);
+		for (int i = 0; i < MAX_SITES; i++) {
+			site.push_back(point(random_int(0, MAX_WIDTH - BOUNDARIES), random_int(0, MAX_HEIGHT - BOUNDARIES)));
+			//printf("x: %f | z: %f\n", site[i].x, site[i].z);
+			// adding sites as spheres
+			mat.loadIdentity();
+			mat.translate(site[i].x, 100, site[i].z);
+			app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), .5), black, true);
+			count++;
+		}
+		printf("... total sites %d ...\n", count);
+	}
+
+	void add_cubes(mat4t &mat) {
+		material *green = new material(vec4(1, 0, 0, 1));
+
+		printf("...\nmaking rectangles on each site...\n");
+		for (size_t it = 0; it < site.size(); it++) {
+			const point& p = site[it];
+			float d = CL_MAXFLOAT;
+			int pos = 0;
+			for (size_t it2 = 0; it2 < site.size(); it2++) {
+				const point& p2 = site[it2];
+				float dd = distance(p, p2);
+				if (dd < d && dd > 0) {
+					d = dd;
+					pos = it2;
+				}
+				//printf("temp distance %f\n", dd);
+
+			}
+			//site_edge.push_back(my_edge(p.x, p.z, site[pos].x, site[pos].z));
+			mat.loadIdentity();
+			mat.translate(p.x, 10, p.z);
+			//mat.rotate(5,1,0,0);
+			app_scene->add_shape(mat, new mesh_box(vec3(1, 10, 1)), green, false);
+
+			//printf("distance %f\n", d);
+			//printf("x1: %f | z1: %f || x2: %f | z2: %f\n", p.x, p.z, site[pos].x, site[pos].z);
+		}
+	}
+
 
   public:
     /// this is called when we construct the class before everything is initialised.
@@ -94,8 +180,7 @@ namespace octet {
 		the_camera->set_far_plane(10000);
 
 		material *red = new material(vec4(1, 0, 0, 1));
-		material *green = new material(vec4(0, 1, 0, 1));
-		material *black = new material(vec4(0, 0, 0, 1));
+		material *green = new material(vec4(0, 1, 0, 1));	
 		material *white = new material(vec4(1, 1, 1, 1));
 	  
 		mat4t mat;
@@ -104,113 +189,16 @@ namespace octet {
 		mat.loadIdentity();
 		mat.translate(0, -1, 0);
 		//mat.rotate(5,1,0,0);
-		app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH, 1, MAX_HEIGHT)), green, false);
+		app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH*10, 1, MAX_HEIGHT*10)), green, false);
 
 		// just a ball
+		mat.loadIdentity();
 		mat.translate(0, 12, 0);
 		app_scene->add_shape(mat, new mesh_sphere(vec3(2, 2, 2), 2), red, true);
 
-		int count = 0;
-		printf("...\nadding sites...\n");
-		srand(100);
-		for (int i = 0; i < 10; i++) {
-			site.push_back(my_coords(random_int(0, MAX_WIDTH - BOUNDARIES), 0, random_int(0, MAX_HEIGHT - BOUNDARIES)));
-			printf("x: %f | z: %f\n",  site[i].x,  site[i].z);
-			// adding sites as spheres
-			mat.translate(site[i].x, site[i].y, site[i].z);
-			app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), .2), black, true);
-			count++;
-		}
-		printf("... total sites %d ...\n", count);
+		add_sites(mat);
 
-		count = 0;
-		printf("...\nconnecting sites with lines...\n");
-		for (size_t it = 0; it < site.size(); it++) {
-			const my_coords& p = site[it];
-			for (size_t it2 = 1 + it; it2 < site.size(); it2++) {
-				const my_coords& p2 = site[it2];
-				temp_site_edge.push_back(my_edge(p.x, p.z, p2.x, p2.z));
-				printf("x1: %f | z1: %f || x2: %f | z2: %f\n", p.x, p.z, p2.x, p2.z);
-				count++;
-			}
-		}
-		printf("... total temporary lines %d ...\n", count);
-
-		count = 0;
-		printf("...\ncheck lines that intersects others and delete them...\n"); // kind of brute-force method here
-		for (size_t it = 0; it < temp_site_edge.size(); it++) {
-			const my_edge& e = temp_site_edge[it];
-			for (size_t it2 = 0 + it; it2 < temp_site_edge.size(); it2++) {
-				const my_edge& e2 = temp_site_edge[it2];
-				if ((((e2.z2 - e2.z1) / (e2.x2 - e2.x1)) - ((e.z2 - e.z1) / (e.x2 - e.x1))) == 0) { // intersection formula
-					final_site_edge.push_back(my_edge(e.x1, e.z1, e.x2, e.z2));
-					printf("x1: %f | z1: %f || x2: %f | z2: %f\n", e.x1, e.z1, e.x2, e.z2);
-					count++;
-				}
-			}
-		}
-		printf("... total final lines %d ...\n", count);
-
-	//printf(".\n showing lines...\n");
-	//mat.loadIdentity();
-	//mat.translate(0, -1, 0);
-	////mat.rotate(5,1,0,0);
-	//app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH, 1, MAX_HEIGHT)), green, false);
-
-
-	//int nearest_site(double x, double y)
-	//{
-	// int k, ret = 0;
-	// double d, dist = 0;
-	// #define for_k for (k = 0; k < N_SITES; k++)
-	// for_k{
-	//  d = sq2(x - site[k][0], y - site[k][1]);
-	// if (!k || d < dist) {
-	//  dist = d, ret = k;
-	// }
-	// }
-	// return ret;
-	//}
-
-	//int nearest_site(double x, double y)
-	//{
-	// int k, ret = 0;
-	// double d, dist = 0;
-	// #define for_k for (k = 0; k < N_SITES; k++)
-	// for_k{
-	//  d = sq2(x - site[k][0], y - site[k][1]);
-	// if (!k || d < dist) {
-	//  dist = d, ret = k;
-	// }
-	// }
-	// return ret;
-	//}
-	//int w = MAX_WIDTH - BOUNDARIES, h = MAX_HEIGHT - BOUNDARIES, d;
-	//for (int hh = 0; hh < h; hh++) {
-	//	for (int ww = 0; ww < w; ww++) {
-	//		int ind = -1, dist = INT_MAX;
-	//		for (size_t it = 0; it < site.size(); it++) {
-	//			const my_coords& p = site[it];
-	//			d = square_distance(p, ww, hh);
-	//			if (d < dist) {
-	//				dist = d;
-	//				ind = it;
-	//			}
-	//		}
-
-	//		if (ind > -1) {
-	//			voronoi_vertex.push_back((my_coords(ww, 0, hh)));
-	//			//SetPixel(bmp_->hdc(), ww, hh, colors_[ind]);
-	//		}
-	//		else
-	//			printf("out of boundaries!");
-	//	}
-	//}
-
-	printf("adding voronoi vertex...\n");
-	// formula to calculate if both lines intersects
-	//n.x * (P.x - P_0.x) + n.y * (P.y - P_0.y) + n.z * (P.z - P_0.z) = 0;
-
+		add_cubes(mat);
 
 	  // player from example_fps.h
 	  {
