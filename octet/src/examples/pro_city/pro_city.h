@@ -17,7 +17,7 @@ namespace octet {
 	// defining size 
 	CONST int MAX_WIDTH = 200;
 	CONST int MAX_HEIGHT = 200;
-	CONST int BOUNDARIES = 100;
+	CONST int BOUNDARIES = 10;
 	CONST int MAX_SITES = 100;
 
     // scene for drawing box
@@ -52,7 +52,6 @@ namespace octet {
 	};
 
 	dynarray<point> site;
-	//dynarray<my_edge> temp_site_edge;
 	dynarray<my_edge> site_edge;
 	dynarray<point> voronoi_vertex;
 
@@ -64,13 +63,6 @@ namespace octet {
 
 	ref<camera_instance> the_camera;
 
-	// calculates neighbours
-	static int square_distance(const point& vertex, int x, int z) {
-		int xd = x - vertex.x;
-		int zd = z - vertex.z;
-		return (xd * xd) + (zd * zd);
-	}
-
 	// calculates distance
 	static float distance(const point& vertex1, const point& vertex2) {
 		int xd = vertex2.x - vertex1.x;
@@ -80,6 +72,7 @@ namespace octet {
 
 	// gives a random number
 	int random_int(int min, int max) {
+		if (min > max) max = min + 2;
 		return rand() % (max - min + 1) + min;
 	}
 
@@ -115,26 +108,25 @@ namespace octet {
 		return false; // No collision
 	}
 
+	// add vertexes
 	void add_sites(mat4t &mat) {
 		material *black = new material(vec4(0, 0, 0, 1));
 
 		int count = 0;
 		printf("...\nadding sites...\n");
-		srand(99);
+		srand(99); //seed
 		for (int i = 0; i < MAX_SITES; i++) {
 			site.push_back(point(random_int(0, MAX_WIDTH - BOUNDARIES), random_int(0, MAX_HEIGHT - BOUNDARIES)));
 			//printf("x: %f | z: %f\n", site[i].x, site[i].z);
-			// adding sites as spheres
-			mat.loadIdentity();
-			mat.translate(site[i].x, 100, site[i].z);
-			app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), .5), black, true);
 			count++;
 		}
 		printf("... total sites %d ...\n", count);
 	}
 
+	// draw city
 	void add_cubes(mat4t &mat) {
-		material *green = new material(vec4(1, 0, 0, 1));
+		material *grey = new material(vec4(.5, .5, .5, 1));
+		material *white = new material(vec4(1, 1, 1, 1));
 
 		printf("...\nmaking rectangles on each site...\n");
 		for (size_t it = 0; it < site.size(); it++) {
@@ -151,12 +143,10 @@ namespace octet {
 				//printf("temp distance %f\n", dd);
 
 			}
-			//site_edge.push_back(my_edge(p.x, p.z, site[pos].x, site[pos].z));
 			mat.loadIdentity();
 			mat.translate(p.x, 10, p.z);
-			//mat.rotate(5,1,0,0);
-			app_scene->add_shape(mat, new mesh_box(vec3(1, 10, 1)), green, false);
-
+			app_scene->add_shape(mat, new mesh_box(vec3(random_int(1, d/100), random_int(5, 10), random_int(1, d / 100))), grey, false);
+			app_scene->add_shape(mat, new mesh_box(vec3(.1, random_int(5, 20), .1)), white, false);
 			//printf("distance %f\n", d);
 			//printf("x1: %f | z1: %f || x2: %f | z2: %f\n", p.x, p.z, site[pos].x, site[pos].z);
 		}
@@ -181,20 +171,18 @@ namespace octet {
 
 		material *red = new material(vec4(1, 0, 0, 1));
 		material *green = new material(vec4(0, 1, 0, 1));	
-		material *white = new material(vec4(1, 1, 1, 1));
 	  
 		mat4t mat;
 
 		// ground
 		mat.loadIdentity();
-		mat.translate(0, -1, 0);
-		//mat.rotate(5,1,0,0);
+		mat.translate(0, 5, 0);
 		app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH*10, 1, MAX_HEIGHT*10)), green, false);
 
 		// just a ball
 		mat.loadIdentity();
-		mat.translate(0, 12, 0);
-		app_scene->add_shape(mat, new mesh_sphere(vec3(2, 2, 2), 2), red, true);
+		mat.translate(50, 12, -5);
+		app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), 1), red, true);
 
 		add_sites(mat);
 
@@ -202,19 +190,21 @@ namespace octet {
 
 	  // player from example_fps.h
 	  {
-	  float player_height = 100.83f;
+	  float player_height = 50.00f;
 	  float player_radius = 0.25f;
 	  float player_mass = 90.0f;
 
 	  mat.loadIdentity();
-	  mat.translate(0, player_height*0.5f, -50);
+	  mat.rotateY(90);
+	  mat.translate(100, player_height*0.5f, 0);
+	  mat.rotateZ(90);
 
 	  mesh_instance *mi = app_scene->add_shape(
 		  mat,
 		  new mesh_sphere(vec3(0), player_radius),
 		  new material(vec4(0, 0, 1, 1)),
 		  true, player_mass,
-		  new btCapsuleShape(0.25f, player_height)
+		  new btCapsuleShape(0.25f, 2)
 		  );
 	  player_node = mi->get_node();
 	  }
