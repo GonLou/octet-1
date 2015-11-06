@@ -31,9 +31,11 @@ namespace octet {
 	btSequentialImpulseConstraintSolver *solver;  /// handler to resolve collisions
 	btDiscreteDynamicsWorld *world;               /// physics world, contains rigid bodies
 
-	dynarray<btRigidBody*> rigid_bodies;
 
-	dynarray<scene_node*> nodes;
+	//dynarray<btRigidBody*> rigid_bodies;
+
+	//dynarray<scene_node*> nodes;
+	ref<material> custom_mat;
 
 	struct point {
 		float x;
@@ -46,6 +48,28 @@ namespace octet {
 			z = _z;
 		}
 	};
+	
+	enum id { OBJ = 0, PLAYER = 1, BALL = 2, GOAL = 3 };
+
+	struct my_objects {
+		float x;
+		float y;
+		float z;
+		float radius;
+		id idc;
+
+		my_objects() = default;
+
+		my_objects(float _x, float _y, float _z, float _radius, id _id) {
+			x = _x;
+			y = _y;
+			z = _z;
+			radius = _radius;
+			idc = _id;
+		}
+	};
+
+	dynarray<my_objects> objects;
 
 	struct my_edge {
 		float x1;
@@ -64,8 +88,8 @@ namespace octet {
 	};
 
 	dynarray<point> site;
-	dynarray<my_edge> site_edge;
-	dynarray<point> voronoi_vertex;
+	//dynarray<my_edge> site_edge;
+	//dynarray<point> voronoi_vertex;
 
 	mouse_look mouse_look_helper;
 	helper_fps_controller fps_helper;
@@ -163,10 +187,16 @@ namespace octet {
 			}
 			mat.loadIdentity();
 			mat.translate(p.x, 10, p.z);
-			app_scene->add_shape(mat, new mesh_box(vec3(random_int(1, d/100), random_int(5, 10), random_int(1, d / 100))), building, false);
-			app_scene->add_shape(mat, new mesh_box(vec3(.1, random_int(5, 20), .1)), grey, false);
+			float xs = random_int(1, d / 100);
+			float ys = random_int(5, 10);
+			float zs = random_int(1, d / 100);
+			app_scene->add_shape(mat, new mesh_box(vec3(xs, ys, zs)), building, false);
+			app_scene->add_shape(mat, new mesh_box(vec3(.1, ys + random_int(1, 10), .1)), grey, false);
 			//printf("distance %f\n", d);
 			//printf("x1: %f | z1: %f || x2: %f | z2: %f\n", p.x, p.z, site[pos].x, site[pos].z);
+			float perimeter = (xs * zs / 2);
+			objects.push_back(my_objects(p.x, 10.0f, p.z, perimeter, OBJ));
+			printf("distance %f\n", perimeter);
 		}
 	}
 
@@ -227,6 +257,8 @@ namespace octet {
 			mat.rotateX90();
 			mat.rotateY90();
 			app_scene->add_shape(mat, new mesh_box(vec3(.5, 20, .5)), green, false);
+
+			objects.push_back(my_objects(150, 10, 250, 1, GOAL));
 		}
 
 	  // player from example_fps.h
@@ -249,12 +281,19 @@ namespace octet {
 			  new btCapsuleShape(0.25f, 2)
 			  );
 		  player_node = mi->get_node();
+
+		  objects.push_back(my_objects(100, player_height*0.5f, 0, 1, PLAYER));
 	  }
 
-	  /// just a ball
-	  mat.loadIdentity();
-	  mat.translate(50, 12, -5);
-	  app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), 1), red, true);
+	  // just a transparent ball
+	  {
+		  mat.loadIdentity();
+		  mat.translate(50, 12, -5);
+		  param_shader *shader = new param_shader("shaders/default.vs", "shaders/default_solid_transparent.fs");
+		  custom_mat = new material(vec4(1, 1, 1, 1), shader);
+		  app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), 1), custom_mat, true);
+		  objects.push_back(my_objects(50, 12, -5, 1, BALL));
+	  }
 
 	  // text from example_text.h
 	  {
@@ -268,8 +307,8 @@ namespace octet {
 		  // create a box containing text (in pixels)
 		  aabb Rtext_aabb(vec3(600.0f, 150.0f, 0.0f), vec3(256, 128, 0));
 		  aabb Ltext_aabb(vec3(-150.0f, 150.0f, 0.0f), vec3(256, 128, 0));
-		  right_text = new mesh_text(font, "R---", &Rtext_aabb);
-		  left_text = new mesh_text(font, "L---", &Ltext_aabb);
+		  right_text = new mesh_text(font, "Score: 10000", &Rtext_aabb);
+		  left_text = new mesh_text(font, "Mission #1: Head to ball", &Ltext_aabb);
 
 		  // add the mesh to the overlay.
 		  overlay->add_mesh_text(right_text);
@@ -290,16 +329,23 @@ namespace octet {
       get_viewport_size(vx, vy);
       app_scene->begin_render(vx, vy);
 
-	  int num_mani_folds = world->getDispatcher()->getNumManifolds();
+	  //if (game_start) {
+
+		 // if (collision) {}
+
+		 // if (end_game) {}
+
+		 // // to implement future
+		 // /*righttext->clear();
+		 // righttext->format("something\n" "something\n" "somethin %i\n", score);*/
+		 // //game_sounds.playSoundEffort();
+		 // // END
+
+	  //}
+	  //if (hall_of_fame) {}
 
 	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
 	  mat4t &cam_to_world = cam_node->access_nodeToParent();
-
-	  // to implement future
-	  /*righttext->clear();
-	  righttext->format("something\n" "something\n" "somethin %i\n", score);*/
-	  //game_sounds.playSoundEffort();
-	  // END
 
 	  mouse_look_helper.update(cam_to_world);
 
