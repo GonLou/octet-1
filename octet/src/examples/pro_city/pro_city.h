@@ -126,7 +126,9 @@ namespace octet {
 	// draw city
 	void add_cubes(mat4t &mat) {
 		material *grey = new material(vec4(.5, .5, .5, 1));
-		material *white = new material(vec4(1, 1, 1, 1));
+		//material *white = new material(vec4(1, 1, 1, 1));
+		image *img = new image("assets/pro_city/building.jpg");
+		material *building = new material(img);
 
 		printf("...\nmaking rectangles on each site...\n");
 		for (size_t it = 0; it < site.size(); it++) {
@@ -145,8 +147,8 @@ namespace octet {
 			}
 			mat.loadIdentity();
 			mat.translate(p.x, 10, p.z);
-			app_scene->add_shape(mat, new mesh_box(vec3(random_int(1, d/100), random_int(5, 10), random_int(1, d / 100))), grey, false);
-			app_scene->add_shape(mat, new mesh_box(vec3(.1, random_int(5, 20), .1)), white, false);
+			app_scene->add_shape(mat, new mesh_box(vec3(random_int(1, d/100), random_int(5, 10), random_int(1, d / 100))), building, false);
+			app_scene->add_shape(mat, new mesh_box(vec3(.1, random_int(5, 20), .1)), grey, false);
 			//printf("distance %f\n", d);
 			//printf("x1: %f | z1: %f || x2: %f | z2: %f\n", p.x, p.z, site[pos].x, site[pos].z);
 		}
