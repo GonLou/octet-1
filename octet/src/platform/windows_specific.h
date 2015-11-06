@@ -94,6 +94,14 @@ namespace octet {
     HGLRC gl_context;
     HWND window_handle;
 
+	// just to present a window with the same ratio 
+	void GetDesktopResolution(int &horizontal , int &vertical ) { 
+		RECT desktop; // Get a handle to the desktop window 
+		const HWND hDesktop = GetDesktopWindow(); // Get the size of screen to the variable desktop 
+		GetWindowRect(hDesktop, &desktop );
+		horizontal = desktop.right; vertical = desktop.bottom;
+	}
+
     void init_gl_context(HWND window_handle) {
       static const PIXELFORMATDESCRIPTOR pfd = { 
         sizeof(PIXELFORMATDESCRIPTOR),  //  size of this pfd  
@@ -157,10 +165,15 @@ namespace octet {
 
       gl_context = 0;
      
-      window_handle = CreateWindowW(L"MyClass", L"octet",
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 768, 768,
-        NULL, NULL, wndclass.hInstance, (LPVOID)this
-      );
+      //window_handle = CreateWindowW(L"MyClass", L"Procedural City",
+      //  WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 768, 768,
+      //  NULL, NULL, wndclass.hInstance, (LPVOID)this
+      //);
+
+	  // to center the window with a ratio 
+	  int horizontal_screen = 0; int vertical_screen = 0; const double ratio_screen = 0.90;
+	  GetDesktopResolution(horizontal_screen, vertical_screen);
+	  window_handle = CreateWindowW(L"MyClass", L"Procedural City", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, ((int)horizontal_screen*ratio_screen), ((int)vertical_screen*ratio_screen), NULL, NULL, wndclass.hInstance, (LPVOID)this);
 
       map()[window_handle] = this;
 

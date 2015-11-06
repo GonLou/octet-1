@@ -57,7 +57,6 @@ namespace octet {
 	dynarray<my_edge> site_edge;
 	dynarray<point> voronoi_vertex;
 
-
 	mouse_look mouse_look_helper;
 	helper_fps_controller fps_helper;
 
@@ -67,19 +66,25 @@ namespace octet {
 
 	Sound game_sounds;
 
-	// calculates distance
+	// Overlay and text drawing
+	ref<text_overlay> overlay;
+	ref<mesh_text> right_text;
+	ref<mesh_text> left_text;
+
+	/// calculates distance
 	static float distance(const point& vertex1, const point& vertex2) {
 		int xd = vertex2.x - vertex1.x;
 		int zd = vertex2.z - vertex1.z;
 		return (xd * xd) + (zd * zd);
 	}
 
-	// gives a random number
+	/// gives a random number
 	int random_int(int min, int max) {
 		if (min > max) max = min + 2;
 		return rand() % (max - min + 1) + min;
 	}
 
+	/// calculates intersections
 	bool do_intersect(my_edge& p1, my_edge& p2) {
 
 		//if (p1.x1 != p2.x1 && p1.z1 != p2.z1) return false;
@@ -109,7 +114,7 @@ namespace octet {
 		return false; // No collision
 	}
 
-	// add vertexes
+	/// add vertexes
 	void add_sites(mat4t &mat) {
 		material *black = new material(vec4(0, 0, 0, 1));
 
@@ -124,7 +129,7 @@ namespace octet {
 		printf("... total sites %d ...\n", count);
 	}
 
-	// draw city
+	/// draw city
 	void add_cubes(mat4t &mat) {
 		material *grey = new material(vec4(.5, .5, .5, 1));
 		//material *white = new material(vec4(1, 1, 1, 1));
@@ -155,7 +160,6 @@ namespace octet {
 		}
 	}
 
-
   public:
     /// this is called when we construct the class before everything is initialised.
     pro_city(int argc, char **argv) : app(argc, argv) {
@@ -163,7 +167,6 @@ namespace octet {
 
     /// this is called once OpenGL is initialized
 	void app_init() {
-		game_sounds.init_sound();
 		mouse_look_helper.init(this, 200.0f / 360.0f, false);
 		fps_helper.init(this);
 		app_scene =  new visual_scene();
@@ -179,14 +182,12 @@ namespace octet {
 		mat4t mat;
 
 		// ground
-		mat.loadIdentity();
-		mat.translate(0, 5, 0);
-		app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH*10, 1, MAX_HEIGHT*10)), green, false);
-
-		// just a ball
-		mat.loadIdentity();
-		mat.translate(50, 12, -5);
-		app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), 1), red, true);
+		{
+			printf("...\nmaking ground...\n");
+			mat.loadIdentity();
+			mat.translate(0, 5, 0);
+			app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH*10, 1, MAX_HEIGHT*10)), green, false);
+		}
 
 		add_sites(mat);
 
@@ -194,25 +195,57 @@ namespace octet {
 
 	  // player from example_fps.h
 	  {
-	  float player_height = 50.00f;
-	  float player_radius = 0.25f;
-	  float player_mass = 90.0f;
+		  printf("...\ndeploying player...\n");
+		  float player_height = 50.00f;
+		  float player_radius = 0.25f;
+		  float player_mass = 90.0f;
 
-	  mat.loadIdentity();
-	  mat.rotateY(90);
-	  mat.translate(100, player_height*0.5f, 0);
-	  mat.rotateZ(90);
+		  mat.loadIdentity();
+		  mat.rotateY(90);
+		  mat.translate(100, player_height*0.5f, 0);
+		  mat.rotateZ(90);
 
-	  mesh_instance *mi = app_scene->add_shape(
-		  mat,
-		  new mesh_sphere(vec3(0), player_radius),
-		  new material(vec4(0, 0, 1, 1)),
-		  true, player_mass,
-		  new btCapsuleShape(0.25f, 2)
-		  );
-	  player_node = mi->get_node();
+		  mesh_instance *mi = app_scene->add_shape(
+			  mat,
+			  new mesh_sphere(vec3(0), player_radius),
+			  new material(vec4(0, 0, 1, 1)),
+			  true, player_mass,
+			  new btCapsuleShape(0.25f, 2)
+			  );
+		  player_node = mi->get_node();
 	  }
-	  game_sounds.playSoundStart();
+
+	  /// just a ball
+	  mat.loadIdentity();
+	  mat.translate(50, 12, -5);
+	  app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), 1), red, true);
+
+	  // text from example_text.h
+	  {
+		  printf("...\nwriting text...\n");
+
+		  overlay = new text_overlay();
+
+		  // get the font
+		  bitmap_font *font = overlay->get_default_font();
+
+		  // create a box containing text (in pixels)
+		  aabb Rtext_aabb(vec3(600.0f, 150.0f, 0.0f), vec3(256, 128, 0));
+		  aabb Ltext_aabb(vec3(-150.0f, 150.0f, 0.0f), vec3(256, 128, 0));
+		  right_text = new mesh_text(font, "R---", &Rtext_aabb);
+		  left_text = new mesh_text(font, "L---", &Ltext_aabb);
+
+		  // add the mesh to the overlay.
+		  overlay->add_mesh_text(right_text);
+		  overlay->add_mesh_text(left_text);
+	  }
+
+	  // sounds from class
+	  {
+		  printf("...\ninitialize sounds...\n");
+		  game_sounds.init_sound();
+		  game_sounds.playSoundStart();
+	  }
     }
 
     /// this is called to draw the world
@@ -220,10 +253,15 @@ namespace octet {
       int vx = 0, vy = 0;
       get_viewport_size(vx, vy);
       app_scene->begin_render(vx, vy);
-	  //game_sounds.playSoundEffort();
+
 	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
 	  mat4t &cam_to_world = cam_node->access_nodeToParent();
 
+	  // to implement future
+	  /*righttext->clear();
+	  righttext->format("something\n" "something\n" "somethin %i\n", score);*/
+	  //game_sounds.playSoundEffort();
+	  // END
 	  mouse_look_helper.update(cam_to_world);
 
       fps_helper.update(player_node, cam_node);
@@ -233,6 +271,13 @@ namespace octet {
 
       // draw the scene
       app_scene->render((float)vx / vy);
+
+	  // convert it to a mesh.
+	  right_text->update();
+	  left_text->update();
+
+	  // draw the text overlay
+	  overlay->render(vx, vy);
 
     }
   };
