@@ -10,6 +10,8 @@ using namespace std;
 #include <stdlib.h>
 #include <time.h>
 
+#include "Sound.h"
+
 namespace octet {
   /// Scene containing a box with octet.
   class pro_city : public app {
@@ -63,6 +65,8 @@ namespace octet {
 
 	ref<camera_instance> the_camera;
 
+	Sound game_sounds;
+
 	// calculates distance
 	static float distance(const point& vertex1, const point& vertex2) {
 		int xd = vertex2.x - vertex1.x;
@@ -76,13 +80,10 @@ namespace octet {
 		return rand() % (max - min + 1) + min;
 	}
 
-	bool do_intersect(my_edge& p1, my_edge& p2)
-		/*bool get_line_intersection(float p0_x, float p0_y, float p1_x, float p1_y,
-			float p2_x, float p2_y, float p3_x, float p3_y, float *i_x, float *i_y)*/
-	{
+	bool do_intersect(my_edge& p1, my_edge& p2) {
 
-		if (p1.x1 != p2.x1 && p1.z1 != p2.z1) return false;
-		if (p1.x2 != p2.x2 && p1.z2 != p2.z2) return false;
+		//if (p1.x1 != p2.x1 && p1.z1 != p2.z1) return false;
+		//if (p1.x2 != p2.x2 && p1.z2 != p2.z2) return false;
 
 		float s1_x, s1_y, s2_x, s2_y;
 		s1_x = p1.x2 - p1.x1;     
@@ -162,6 +163,7 @@ namespace octet {
 
     /// this is called once OpenGL is initialized
 	void app_init() {
+		game_sounds.init_sound();
 		mouse_look_helper.init(this, 200.0f / 360.0f, false);
 		fps_helper.init(this);
 		app_scene =  new visual_scene();
@@ -210,7 +212,7 @@ namespace octet {
 		  );
 	  player_node = mi->get_node();
 	  }
-
+	  game_sounds.playSoundStart();
     }
 
     /// this is called to draw the world
@@ -218,7 +220,7 @@ namespace octet {
       int vx = 0, vy = 0;
       get_viewport_size(vx, vy);
       app_scene->begin_render(vx, vy);
-
+	  //game_sounds.playSoundEffort();
 	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
 	  mat4t &cam_to_world = cam_node->access_nodeToParent();
 
