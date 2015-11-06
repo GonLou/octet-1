@@ -25,6 +25,16 @@ namespace octet {
     // scene for drawing box
     ref<visual_scene> app_scene;
 
+	btDefaultCollisionConfiguration config;       /// setup for the world
+	btCollisionDispatcher *dispatcher;            /// handler for collisions between objects
+	btDbvtBroadphase *broadphase;                 /// handler for broadphase (rough) collision
+	btSequentialImpulseConstraintSolver *solver;  /// handler to resolve collisions
+	btDiscreteDynamicsWorld *world;               /// physics world, contains rigid bodies
+
+	dynarray<btRigidBody*> rigid_bodies;
+
+	dynarray<scene_node*> nodes;
+
 	struct point {
 		float x;
 		float z;
@@ -163,7 +173,18 @@ namespace octet {
   public:
     /// this is called when we construct the class before everything is initialised.
     pro_city(int argc, char **argv) : app(argc, argv) {
+		dispatcher = new btCollisionDispatcher(&config);
+		broadphase = new btDbvtBroadphase();
+		solver = new btSequentialImpulseConstraintSolver();
+		world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, &config);
     }
+
+	~pro_city() {
+		delete world;
+		delete solver;
+		delete broadphase;
+		delete dispatcher;
+	}
 
     /// this is called once OpenGL is initialized
 	void app_init() {
@@ -175,6 +196,8 @@ namespace octet {
 		the_camera->get_node()->translate(vec3(0, 4, 0));
 		the_camera->get_node()->rotate(180, vec3(0, 180, 0));
 		the_camera->set_far_plane(10000);
+
+		world->setGravity(btVector3(0, -100.0f, 0));
 
 		material *red = new material(vec4(1, 0, 0, 1));
 		material *green = new material(vec4(0, 1, 0, 1));	
@@ -192,6 +215,19 @@ namespace octet {
 		add_sites(mat);
 
 		add_cubes(mat);
+
+		// gate
+		{
+			mat.loadIdentity();
+			mat.translate(150, 10, 250);
+			app_scene->add_shape(mat, new mesh_box(vec3(.5, 40, .5)), red, false);
+			mat.translate(20, 0, 0);
+			app_scene->add_shape(mat, new mesh_box(vec3(.5, 40, .5)), red, false);
+			mat.translate(-10, 40, 0);
+			mat.rotateX90();
+			mat.rotateY90();
+			app_scene->add_shape(mat, new mesh_box(vec3(.5, 20, .5)), green, false);
+		}
 
 	  // player from example_fps.h
 	  {
@@ -254,6 +290,8 @@ namespace octet {
       get_viewport_size(vx, vy);
       app_scene->begin_render(vx, vy);
 
+	  int num_mani_folds = world->getDispatcher()->getNumManifolds();
+
 	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
 	  mat4t &cam_to_world = cam_node->access_nodeToParent();
 
@@ -262,6 +300,7 @@ namespace octet {
 	  righttext->format("something\n" "something\n" "somethin %i\n", score);*/
 	  //game_sounds.playSoundEffort();
 	  // END
+
 	  mouse_look_helper.update(cam_to_world);
 
       fps_helper.update(player_node, cam_node);
