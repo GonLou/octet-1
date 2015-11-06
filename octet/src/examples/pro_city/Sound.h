@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
-//
-//  Goncalo Lourenco 2015
-//
-// Sound class management
+///
+///  Goncalo Lourenco 2015
+///
+/// Sound class management
 
 namespace octet {
 	namespace scene {
@@ -17,7 +17,7 @@ namespace octet {
 			unsigned current_source;    	// current sound source
 			unsigned int sount_stop;
 			ALuint num_sound_sources = 32;
-			ALuint sources[32];    		// 32 sound sources
+			ALuint sources[32];    			// 32 sound sources
 
 			// returns new sound source
 			ALuint get_sound_source() {

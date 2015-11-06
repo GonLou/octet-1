@@ -11,6 +11,7 @@ using namespace std;
 #include <time.h>
 
 #include "Sound.h"
+#include "Engine.h"
 
 namespace octet {
   /// Scene containing a box with octet.
@@ -36,6 +37,9 @@ namespace octet {
 
 	//dynarray<scene_node*> nodes;
 	ref<material> custom_mat;
+
+	// variables for the game 
+	ref<Engine> engine;
 
 	struct point {
 		float x;
@@ -196,7 +200,7 @@ namespace octet {
 			//printf("x1: %f | z1: %f || x2: %f | z2: %f\n", p.x, p.z, site[pos].x, site[pos].z);
 			float perimeter = (xs * zs / 2);
 			objects.push_back(my_objects(p.x, 10.0f, p.z, perimeter, OBJ));
-			printf("distance %f\n", perimeter);
+			//printf("distance %f\n", perimeter);
 		}
 	}
 
@@ -319,8 +323,13 @@ namespace octet {
 	  {
 		  printf("...\ninitialize sounds...\n");
 		  game_sounds.init_sound();
-		  game_sounds.playSoundStart();
 	  }
+
+	  engine = new Engine(10, Engine::State::HALL_OF_FAME);
+	  //core.gameMode = Core::INIT;
+
+	  printf("engine %d\n", engine->GetState());
+	
     }
 
     /// this is called to draw the world
@@ -329,20 +338,20 @@ namespace octet {
       get_viewport_size(vx, vy);
       app_scene->begin_render(vx, vy);
 
-	  //if (game_start) {
-
-		 // if (collision) {}
-
-		 // if (end_game) {}
-
-		 // // to implement future
-		 // /*righttext->clear();
-		 // righttext->format("something\n" "something\n" "somethin %i\n", score);*/
-		 // //game_sounds.playSoundEffort();
-		 // // END
-
-	  //}
-	  //if (hall_of_fame) {}
+	  switch (engine->GetState()) {
+		case (Engine::State::GAME_START) : 
+			break;
+		case (Engine::State::GAME_END) :
+			game_sounds.playSoundEnd();
+			break;
+		case (Engine::State::HALL_OF_FAME) :
+			left_text->clear();
+			left_text->format("press <SPACE> to start\n");
+			break;	
+		default :
+			printf("something went wrong...\n");
+			break;
+	  }
 
 	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
 	  mat4t &cam_to_world = cam_node->access_nodeToParent();
