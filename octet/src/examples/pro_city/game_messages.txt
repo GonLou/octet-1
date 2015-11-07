@@ -1,0 +1,28 @@
+Press <ESC> to start *
+Mission #1: Head to ball *
+Mission #2: Guide ball avoiding buildings into gate direction *
+Game Over! *
+Reached Goal! *
+
+	  char str[200];
+	  int ptr = 0;
+	  dynarray<string> content;
+	  file_content = fopen("game_messages.txt", "r");
+	  fseek(file_content, 0, 0);
+	  while (!feof(file_content)) {
+		  //fscanf(file_content, "%s", str);
+		  char initsym = fgetc(file_content);
+		  printf("%c\n", initsym);
+		  switch (initsym) {
+		  case '*':
+			  content.push_back(str);
+			  //printf("%s\n", content[1]);
+			  ptr = 0;
+			  break;
+		  default:
+			  str[ptr] = initsym;
+			  printf("%s\n", str);
+			  break;
+		  }
+	  }
+    }

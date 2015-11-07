@@ -9,6 +9,11 @@ using namespace std;
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
 
 #include "Sound.h"
 #include "Engine.h"
@@ -32,14 +37,15 @@ namespace octet {
 	btSequentialImpulseConstraintSolver *solver;  /// handler to resolve collisions
 	btDiscreteDynamicsWorld *world;               /// physics world, contains rigid bodies
 
-
 	//dynarray<btRigidBody*> rigid_bodies;
-
 	//dynarray<scene_node*> nodes;
+
 	ref<material> custom_mat;
 
 	// variables for the game 
 	ref<Engine> engine;
+
+	//FILE *file_content;
 
 	struct point {
 		float x;
@@ -54,6 +60,14 @@ namespace octet {
 	};
 	
 	enum id { OBJ = 0, PLAYER = 1, BALL = 2, GOAL = 3 };
+
+	const char* content[200] = {
+		"Press <ESC> to start",
+		"Mission #1: Head to ball",
+		"Mission #2: Guide ball avoiding buildings into gate direction",
+		"Game Over!",
+		"Reached Goal!",
+	};
 
 	struct my_objects {
 		float x;
@@ -214,6 +228,8 @@ namespace octet {
     }
 
 	~pro_city() {
+		//fclose(file_content);
+		//delete file_content;
 		delete world;
 		delete solver;
 		delete broadphase;
@@ -224,7 +240,7 @@ namespace octet {
 	void app_init() {
 		mouse_look_helper.init(this, 200.0f / 360.0f, false);
 		fps_helper.init(this);
-		app_scene =  new visual_scene();
+		app_scene = new visual_scene();
 		app_scene->create_default_camera_and_lights();
 		the_camera = app_scene->get_camera_instance(0);
 		the_camera->get_node()->translate(vec3(0, 4, 0));
@@ -234,8 +250,8 @@ namespace octet {
 		world->setGravity(btVector3(0, -100.0f, 0));
 
 		material *red = new material(vec4(1, 0, 0, 1));
-		material *green = new material(vec4(0, 1, 0, 1));	
-	  
+		material *green = new material(vec4(0, 1, 0, 1));
+
 		mat4t mat;
 
 		// ground
@@ -243,7 +259,7 @@ namespace octet {
 			printf("...\nmaking ground...\n");
 			mat.loadIdentity();
 			mat.translate(0, 5, 0);
-			app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH*10, 1, MAX_HEIGHT*10)), green, false);
+			app_scene->add_shape(mat, new mesh_box(vec3(MAX_WIDTH * 10, 1, MAX_HEIGHT * 10)), green, false);
 		}
 
 		add_sites(mat);
@@ -265,72 +281,69 @@ namespace octet {
 			objects.push_back(my_objects(150, 10, 250, 1, GOAL));
 		}
 
-	  // player from example_fps.h
-	  {
-		  printf("...\ndeploying player...\n");
-		  float player_height = 50.00f;
-		  float player_radius = 0.25f;
-		  float player_mass = 90.0f;
+		// player from example_fps.h
+		{
+			printf("...\ndeploying player...\n");
+			float player_height = 50.00f;
+			float player_radius = 0.25f;
+			float player_mass = 90.0f;
 
-		  mat.loadIdentity();
-		  mat.rotateY(90);
-		  mat.translate(100, player_height*0.5f, 0);
-		  mat.rotateZ(90);
+			mat.loadIdentity();
+			mat.rotateY(90);
+			mat.translate(100, player_height*0.5f, 0);
+			mat.rotateZ(90);
 
-		  mesh_instance *mi = app_scene->add_shape(
-			  mat,
-			  new mesh_sphere(vec3(0), player_radius),
-			  new material(vec4(0, 0, 1, 1)),
-			  true, player_mass,
-			  new btCapsuleShape(0.25f, 2)
-			  );
-		  player_node = mi->get_node();
+			mesh_instance *mi = app_scene->add_shape(
+				mat,
+				new mesh_sphere(vec3(0), player_radius),
+				new material(vec4(0, 0, 1, 1)),
+				true, player_mass,
+				new btCapsuleShape(0.25f, 2)
+				);
+			player_node = mi->get_node();
 
-		  objects.push_back(my_objects(100, player_height*0.5f, 0, 1, PLAYER));
-	  }
+			objects.push_back(my_objects(100, player_height*0.5f, 0, 1, PLAYER));
+		}
 
-	  // just a transparent ball
-	  {
-		  mat.loadIdentity();
-		  mat.translate(50, 12, -5);
-		  param_shader *shader = new param_shader("shaders/default.vs", "shaders/default_solid_transparent.fs");
-		  custom_mat = new material(vec4(1, 1, 1, 1), shader);
-		  app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), 1), custom_mat, true);
-		  objects.push_back(my_objects(50, 12, -5, 1, BALL));
-	  }
+		// just a transparent ball
+		{
+			mat.loadIdentity();
+			mat.translate(50, 12, -5);
+			param_shader *shader = new param_shader("shaders/default.vs", "shaders/default_solid_transparent.fs");
+			custom_mat = new material(vec4(1, 1, 1, 1), shader);
+			app_scene->add_shape(mat, new mesh_sphere(vec3(0, 0, 0), 1), custom_mat, true);
+			objects.push_back(my_objects(50, 12, -5, 1, BALL));
+		}
 
-	  // text from example_text.h
-	  {
-		  printf("...\nwriting text...\n");
+		// text from example_text.h
+		{
+			printf("...\nwriting text...\n");
 
-		  overlay = new text_overlay();
+			overlay = new text_overlay();
 
-		  // get the font
-		  bitmap_font *font = overlay->get_default_font();
+			// get the font
+			bitmap_font *font = overlay->get_default_font();
 
-		  // create a box containing text (in pixels)
-		  aabb Rtext_aabb(vec3(600.0f, 150.0f, 0.0f), vec3(256, 128, 0));
-		  aabb Ltext_aabb(vec3(-150.0f, 150.0f, 0.0f), vec3(256, 128, 0));
-		  right_text = new mesh_text(font, "Score: 10000", &Rtext_aabb);
-		  left_text = new mesh_text(font, "Mission #1: Head to ball", &Ltext_aabb);
+			// create a box containing text (in pixels)
+			aabb Rtext_aabb(vec3(600.0f, 150.0f, 0.0f), vec3(256, 128, 0));
+			aabb Ltext_aabb(vec3(-150.0f, 150.0f, 0.0f), vec3(256, 128, 0));
+			right_text = new mesh_text(font, "---", &Rtext_aabb);
+			left_text = new mesh_text(font, "---", &Ltext_aabb);
 
-		  // add the mesh to the overlay.
-		  overlay->add_mesh_text(right_text);
-		  overlay->add_mesh_text(left_text);
-	  }
+			// add the mesh to the overlay.
+			overlay->add_mesh_text(right_text);
+			overlay->add_mesh_text(left_text);
+		}
 
-	  // sounds from class
-	  {
-		  printf("...\ninitialize sounds...\n");
-		  game_sounds.init_sound();
-	  }
+		// sounds from class
+		{
+			printf("...\ninitialize sounds...\n");
+			game_sounds.init_sound();
+		}
 
-	  engine = new Engine(10, Engine::State::HALL_OF_FAME);
-	  //core.gameMode = Core::INIT;
-
-	  printf("engine %d\n", engine->GetState());
-	
-    }
+		engine = new Engine(10, Engine::State::HALL_OF_FAME);
+		//printf("engine %d\n", engine->GetState());
+	}
 
     /// this is called to draw the world
     void draw_world(int x, int y, int w, int h) {
@@ -346,7 +359,9 @@ namespace octet {
 			break;
 		case (Engine::State::HALL_OF_FAME) :
 			left_text->clear();
-			left_text->format("press <SPACE> to start\n");
+			left_text->format("%s\n", content[0]);
+			right_text->clear();
+			right_text->format("%s\n", content[0]);
 			break;	
 		default :
 			printf("something went wrong...\n");

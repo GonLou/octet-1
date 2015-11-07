@@ -6,9 +6,9 @@ In this assignment is planned to create a procedural city. This is a sceneray pl
 Buildings heigth will be random (a neighbour calculation will ensure not great heigth discrepancies).  
 After the city construction a ball is launched and by the force of player (controlled by arrow keys) avoid to collide with buildings.  
 A score will be recorded in Hall of Fame. This HoF is recorded in a text file and readed every time game ends.  
-### Shader ###  
+### Shader 
 A tiny change was made on file "default_solid_transparent.fs" where alpha was changed from 1.0f to 0.3f just to make ball seem like a transparent plastic ball.  
-### Screen Ratio ###  
+### Screen Ratio 
 Window was changed to aspect ratio currently used and added a customized title game name. File modified was "windows_specific.h" and code is as follows:  
 { . . . . } // just to present a window with the same ratio  
 void GetDesktopResolution(int &horizontal , int &vertical ) {  
