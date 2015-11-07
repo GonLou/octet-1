@@ -62,11 +62,13 @@ namespace octet {
 	enum id { OBJ = 0, PLAYER = 1, BALL = 2, GOAL = 3 };
 
 	const char* content[200] = {
-		"Press <ESC> to start",
+		"Press <SPACE> to start",
 		"Mission #1: Head to ball",
 		"Mission #2: Guide ball avoiding buildings into gate direction",
 		"Game Over!",
 		"Reached Goal!",
+		"Score: ",
+		"Press <SPACE> to start again",
 	};
 
 	struct my_objects {
@@ -218,6 +220,15 @@ namespace octet {
 		}
 	}
 
+	/// start game
+	void start_game() {
+		if (is_key_down(key::key_space)) {
+			engine->SetState(Engine::State::GAME_START);
+			engine->SetScore(1000);
+			game_sounds.playSoundStart();
+		}
+	}
+
   public:
     /// this is called when we construct the class before everything is initialised.
     pro_city(int argc, char **argv) : app(argc, argv) {
@@ -341,7 +352,7 @@ namespace octet {
 			game_sounds.init_sound();
 		}
 
-		engine = new Engine(10, Engine::State::HALL_OF_FAME);
+		engine = new Engine(0, Engine::State::INIT);
 		//printf("engine %d\n", engine->GetState());
 	}
 
@@ -351,29 +362,61 @@ namespace octet {
       get_viewport_size(vx, vy);
       app_scene->begin_render(vx, vy);
 
+	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
+	  mat4t &cam_to_world = cam_node->access_nodeToParent();
+
 	  switch (engine->GetState()) {
 		case (Engine::State::GAME_START) : 
+			left_text->clear();
+			left_text->format("%s\n", content[1]);
+			right_text->clear();
+			right_text->format("%s %d\n", content[5], engine->GetScore());
+			mouse_look_helper.update(cam_to_world);
+			fps_helper.update(player_node, cam_node);
+			// if gets into ball contact
+			//if (engine->GetScore() <= 0) {
+			//	game_sounds.playSoundEnd();
+			//	engine->SetState(Engine::State::ROLL);
+			//}
+			break;
+		case (Engine::State::ROLL) :
+			left_text->clear();
+			left_text->format("%s\n", content[2]);
+			right_text->clear();
+			right_text->format("%s %d\n", content[5], engine->GetScore());
+			mouse_look_helper.update(cam_to_world);
+			fps_helper.update(player_node, cam_node);
+			if (engine->GetScore() <= 0) {
+				game_sounds.playSoundEnd();
+				engine->SetState(Engine::State::GAME_END);
+			}
+			// check if reached gate point
 			break;
 		case (Engine::State::GAME_END) :
-			game_sounds.playSoundEnd();
+			left_text->clear();
+			left_text->format("%s\n", content[3]);
+			right_text->clear();
+			right_text->format("%s\n", content[6]);
+			start_game();
 			break;
 		case (Engine::State::HALL_OF_FAME) :
+			left_text->clear();
+			left_text->format("%s\n", content[4]);
+			right_text->clear();
+			right_text->format("%s\n", content[6]);
+			start_game();
+			break;	
+		case (Engine::State::INIT) :
 			left_text->clear();
 			left_text->format("%s\n", content[0]);
 			right_text->clear();
 			right_text->format("%s\n", content[0]);
-			break;	
+			start_game();
+			break;
 		default :
 			printf("something went wrong...\n");
 			break;
 	  }
-
-	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
-	  mat4t &cam_to_world = cam_node->access_nodeToParent();
-
-	  mouse_look_helper.update(cam_to_world);
-
-      fps_helper.update(player_node, cam_node);
 
       // update matrices. assume 30 fps.
       app_scene->update(1.0f/30);

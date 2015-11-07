@@ -13,7 +13,9 @@ namespace octet {
 		class Engine : public resource {
 		public:
 			enum State {
+				INIT,
 				GAME_START,
+				ROLL,
 				GAME_END,
 				HALL_OF_FAME
 			};
@@ -34,12 +36,16 @@ namespace octet {
 				return this->score;
 			}
 
-			void SetState(Engine::State _state) {
-				state = _state;
-			}
-
 			Engine::State GetState() {
 				return this->state;
+			}
+
+			void SetScore(int _score) {
+				this->score = _score;
+			}
+
+			void SetState(Engine::State _state) {
+				this->state = _state;
 			}
 
 		private:
