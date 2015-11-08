@@ -74,7 +74,7 @@ namespace octet {
 		"Press <SPACE> to start again",
 	};
 
-	char* view_score = "               HIGHSCORE\n1.....Player 1...............0000 points\n2.....Player 1...............0000 points\n3.....Player 1...............0000 points\n4.....Player 1...............0000 points\n5.....Player 1...............0000 points\n6.....Player 1...............0000 points\n7.....Player 1...............0000 points\n8.....Player 1...............0000 points\n9.....Player 1...............0000 points\n10....Player 1...............0000 points";
+	const char* view_score = "               HIGHSCORE\n1.....Player 1...............0000 points\n2.....Player 1...............0000 points\n3.....Player 1...............0000 points\n4.....Player 1...............0000 points\n5.....Player 1...............0000 points\n6.....Player 1...............0000 points\n7.....Player 1...............0000 points\n8.....Player 1...............0000 points\n9.....Player 1...............0000 points\n10....Player 1...............0000 points";
 
 	// where I keep my game objects position and type
 	enum id_obj { OBJ = 0, PLAYER = 1, BALL = 2, GOAL = 3 };
@@ -419,7 +419,7 @@ namespace octet {
 
 		engine = new Engine(1000, Engine::State::INIT);
 		// just to demonstrate that highscore works have to change above INIT to HALL_OF_FAME and uncoment below
-		//view_score = record_score(999, "Goncalo"); 
+		// view_score = record_score(999, "Goncalo").c_str();
 	}
 
     /// this is called to draw the world
