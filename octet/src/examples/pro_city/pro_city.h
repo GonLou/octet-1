@@ -437,7 +437,7 @@ namespace octet {
 			game_sounds.init_sound();
 		}
 
-		engine = new Engine(1000, Engine::State::ROLL);
+		engine = new Engine(1000, Engine::State::INIT);
 		// just to demonstrate that highscore works have to change above INIT to HALL_OF_FAME and uncoment below
 		//view_score = record_score(999, "Goncalo"); 
 	}
@@ -472,10 +472,14 @@ namespace octet {
 			mouse_look_helper.update(cam_to_world);
 			fps_helper.update(player_node, cam_node);
 			// if (reached gate point) {
+			// game_sounds.playSoundEnd();
 			// record_score(engine->GetScore(), "Player1");
 			// engine->SetState(Engine::State::HALL_OF_FAME);
 			// }
-			// if (collide building) engine->SetScore(engine->GetScore()-100);
+			// if (collide building) {
+			// engine->SetScore(engine->GetScore()-100);
+			// game_sounds.playSoundCollision();
+			// }
 			if (engine->GetScore() <= 0) {
 				game_sounds.playSoundEnd();
 				engine->SetState(Engine::State::GAME_END);
