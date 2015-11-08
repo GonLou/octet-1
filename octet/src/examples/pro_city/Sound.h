@@ -3,6 +3,8 @@
 ///  Goncalo Lourenco 2015
 ///
 /// Sound class management
+///
+/// is where all game sounds are configurated
 
 namespace octet {
 	namespace scene {

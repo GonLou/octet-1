@@ -50,8 +50,6 @@ namespace octet {
 	// variables for the game 
 	ref<Engine> engine;
 
-	//FILE *file_content;
-
 	// X/Z coordinates (in this case is z because Y is vertical axis
 	struct point {
 		float x;
@@ -98,22 +96,6 @@ namespace octet {
 		}
 	};
 	dynarray<my_objects> objects;
-
-	//struct my_edge {
-	//	float x1;
-	//	float z1;
-	//	float x2;
-	//	float z2;
-
-	//	my_edge() = default;
-
-	//	my_edge(float _x1, float _z1, float _x2, float _z2) {
-	//		x1 = _x1;
-	//		z1 = _z1;
-	//		x2 = _x2;
-	//		z2 = _z2;
-	//	}
-	//};
 
 	dynarray<point> site;
 
@@ -319,10 +301,8 @@ namespace octet {
 		solver = new btSequentialImpulseConstraintSolver();
 		world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, &config);
     }
-
+	/// destructor
 	~pro_city() {
-		//fclose(file_content);
-		//delete file_content;
 		delete world;
 		delete solver;
 		delete broadphase;
@@ -480,7 +460,7 @@ namespace octet {
 			// engine->SetScore(engine->GetScore()-100);
 			// game_sounds.playSoundCollision();
 			// }
-			if (engine->GetScore() <= 0) {
+			if (engine->GetScore() <= 0) { // player have no score to end
 				game_sounds.playSoundEnd();
 				engine->SetState(Engine::State::GAME_END);
 			}

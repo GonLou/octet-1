@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// Goncalo Lourenco 2014
+/// Goncalo Lourenco 2015
 ///
 /// Engine Class
 ///
@@ -12,6 +12,7 @@ namespace octet {
 		/// main game states
 		class Engine : public resource {
 		public:
+			/// diferent game states
 			enum State {
 				INIT,
 				GAME_START,
@@ -19,6 +20,7 @@ namespace octet {
 				GAME_END,
 				HALL_OF_FAME
 			};
+			/// score value
 			int score;
 
 			/// Default Constructor
@@ -32,18 +34,22 @@ namespace octet {
 				this->state = _state;
 			}
 
+			/// gets score value
 			int GetScore() {
 				return this->score;
 			}
 
+			/// get machine state
 			Engine::State GetState() {
 				return this->state;
 			}
 
+			/// set score value
 			void SetScore(int _score) {
 				this->score = _score;
 			}
 
+			/// set machine state
 			void SetState(Engine::State _state) {
 				this->state = _state;
 			}
@@ -51,7 +57,6 @@ namespace octet {
 		private:
 
 			Engine::State state;
-
 
 		};
 	}
