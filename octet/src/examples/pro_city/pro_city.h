@@ -10,6 +10,7 @@ using namespace std;
 #include <stdlib.h>
 #include <time.h>
 #include <iostream>
+#include <conio.h>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -17,6 +18,7 @@ using namespace std;
 
 #include "Sound.h"
 #include "Engine.h"
+//#include "CollisionObjects.h"
 
 namespace octet {
   /// Scene containing a box with octet.
@@ -40,6 +42,9 @@ namespace octet {
 	//dynarray<btRigidBody*> rigid_bodies;
 	//dynarray<scene_node*> nodes;
 
+	//btRigidBody *rigid_body;
+	//dynarray<CollisionObjects*> game_objects;
+
 	ref<material> custom_mat;
 
 	// variables for the game 
@@ -47,6 +52,7 @@ namespace octet {
 
 	//FILE *file_content;
 
+	// X/Z coordinates (in this case is z because Y is vertical axis
 	struct point {
 		float x;
 		float z;
@@ -59,8 +65,7 @@ namespace octet {
 		}
 	};
 	
-	enum id { OBJ = 0, PLAYER = 1, BALL = 2, GOAL = 3 };
-
+	// all game messages
 	const char* content[200] = {
 		"Press <SPACE> to start",
 		"Mission #1: Head to ball",
@@ -71,16 +76,20 @@ namespace octet {
 		"Press <SPACE> to start again",
 	};
 
+	char* view_score = "               HIGHSCORE\n1.....Player 1...............0000 points\n2.....Player 1...............0000 points\n3.....Player 1...............0000 points\n4.....Player 1...............0000 points\n5.....Player 1...............0000 points\n6.....Player 1...............0000 points\n7.....Player 1...............0000 points\n8.....Player 1...............0000 points\n9.....Player 1...............0000 points\n10....Player 1...............0000 points";
+
+	// where I keep my game objects position and type
+	enum id_obj { OBJ = 0, PLAYER = 1, BALL = 2, GOAL = 3 };
 	struct my_objects {
 		float x;
 		float y;
 		float z;
 		float radius;
-		id idc;
+		id_obj idc;
 
 		my_objects() = default;
 
-		my_objects(float _x, float _y, float _z, float _radius, id _id) {
+		my_objects(float _x, float _y, float _z, float _radius, id_obj _id) {
 			x = _x;
 			y = _y;
 			z = _z;
@@ -88,42 +97,44 @@ namespace octet {
 			idc = _id;
 		}
 	};
-
 	dynarray<my_objects> objects;
 
-	struct my_edge {
-		float x1;
-		float z1;
-		float x2;
-		float z2;
+	//struct my_edge {
+	//	float x1;
+	//	float z1;
+	//	float x2;
+	//	float z2;
 
-		my_edge() = default;
+	//	my_edge() = default;
 
-		my_edge(float _x1, float _z1, float _x2, float _z2) {
-			x1 = _x1;
-			z1 = _z1;
-			x2 = _x2;
-			z2 = _z2;
-		}
-	};
+	//	my_edge(float _x1, float _z1, float _x2, float _z2) {
+	//		x1 = _x1;
+	//		z1 = _z1;
+	//		x2 = _x2;
+	//		z2 = _z2;
+	//	}
+	//};
 
 	dynarray<point> site;
-	//dynarray<my_edge> site_edge;
-	//dynarray<point> voronoi_vertex;
 
+	// helpres for mouse and first person
 	mouse_look mouse_look_helper;
 	helper_fps_controller fps_helper;
 
+	// player control
 	ref<scene_node> player_node;
 
+	// camerca control
 	ref<camera_instance> the_camera;
 
+	// to keep sounds
 	Sound game_sounds;
 
 	// Overlay and text drawing
 	ref<text_overlay> overlay;
 	ref<mesh_text> right_text;
 	ref<mesh_text> left_text;
+	ref<mesh_text> center_text;
 
 	/// calculates distance
 	static float distance(const point& vertex1, const point& vertex2) {
@@ -139,34 +150,34 @@ namespace octet {
 	}
 
 	/// calculates intersections
-	bool do_intersect(my_edge& p1, my_edge& p2) {
+	//bool do_intersect(my_edge& p1, my_edge& p2) {
 
-		//if (p1.x1 != p2.x1 && p1.z1 != p2.z1) return false;
-		//if (p1.x2 != p2.x2 && p1.z2 != p2.z2) return false;
+	//	//if (p1.x1 != p2.x1 && p1.z1 != p2.z1) return false;
+	//	//if (p1.x2 != p2.x2 && p1.z2 != p2.z2) return false;
 
-		float s1_x, s1_y, s2_x, s2_y;
-		s1_x = p1.x2 - p1.x1;     
-		s1_y = p1.z2 - p1.z1;
-		s2_x = p2.x2 - p2.x1;     
-		s2_y = p2.z2 - p2.z1;
+	//	float s1_x, s1_y, s2_x, s2_y;
+	//	s1_x = p1.x2 - p1.x1;     
+	//	s1_y = p1.z2 - p1.z1;
+	//	s2_x = p2.x2 - p2.x1;     
+	//	s2_y = p2.z2 - p2.z1;
 
-		float s, t;
-		s = (-s1_y * (p1.x1 - p2.x1) + s1_x * (p1.z1 - p2.z1)) / (-s2_x * s1_y + s1_x * s2_y);
-		t = (s2_x * (p1.z1 - p2.z1) - s2_y * (p1.x1 - p2.x1)) / (-s2_x * s1_y + s1_x * s2_y);
+	//	float s, t;
+	//	s = (-s1_y * (p1.x1 - p2.x1) + s1_x * (p1.z1 - p2.z1)) / (-s2_x * s1_y + s1_x * s2_y);
+	//	t = (s2_x * (p1.z1 - p2.z1) - s2_y * (p1.x1 - p2.x1)) / (-s2_x * s1_y + s1_x * s2_y);
 
-		if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
-		{
-			// Collision detected
-			//if (i_x != NULL)
-			float i_x = p1.x1 + (t * s1_x);
-			//if (i_y != NULL)
-			float i_y = p1.z1 + (t * s1_y);
-			printf("collision at %f,%f\n", i_x, i_y);
-			return true;
-		}
+	//	if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
+	//	{
+	//		// Collision detected
+	//		//if (i_x != NULL)
+	//		float i_x = p1.x1 + (t * s1_x);
+	//		//if (i_y != NULL)
+	//		float i_y = p1.z1 + (t * s1_y);
+	//		printf("collision at %f,%f\n", i_x, i_y);
+	//		return true;
+	//	}
 
-		return false; // No collision
-	}
+	//	return false; // No collision
+	//}
 
 	/// add vertexes
 	void add_sites(mat4t &mat) {
@@ -218,6 +229,7 @@ namespace octet {
 			objects.push_back(my_objects(p.x, 10.0f, p.z, perimeter, OBJ));
 			//printf("distance %f\n", perimeter);
 		}
+
 	}
 
 	/// start game
@@ -227,6 +239,76 @@ namespace octet {
 			engine->SetScore(1000);
 			game_sounds.playSoundStart();
 		}
+	}
+
+	/// loads and record score if greater that existing
+	std::string record_score(int score, string player) {
+		std::ifstream file("score.txt");
+		std::string name;
+		std::string highscore = "HIGHSCORE\n";
+		std::string highscore_save;
+		int counter = 0;
+		bool no_score = true;
+
+		while (file >> name) {
+			int file_score;
+
+			file >> file_score;
+
+			highscore += std::to_string(counter);
+			if (score >= file_score && no_score) {
+				no_score = false;
+				highscore += ".....";
+				highscore += player;
+				int size = 23 - name.length();
+				for (unsigned i = 0; i < size; i++)
+					highscore += ".";
+				highscore += score;
+				highscore += " points\n";
+				highscore_save += player;
+				highscore_save += " " + std::to_string(score);
+				highscore_save += "\n";
+				counter++;
+				highscore += std::to_string(counter);
+				highscore += ".....";
+				highscore += name;
+				size = 23 - name.length();
+				for (unsigned i = 0; i < size; i++)
+					highscore += ".";
+				highscore += file_score;
+				highscore += " points\n";
+				highscore_save += name;
+				highscore_save += " " + std::to_string(file_score);
+				highscore_save += "\n";
+			}
+			else {
+				highscore += ".....";
+				highscore += name;
+				int size = 23 - name.length();
+				for (unsigned i = 0; i < size; i++)
+					highscore += ".";
+				highscore += file_score;
+				highscore += " points\n";
+				highscore_save += name;
+				highscore_save += " " + std::to_string(file_score);
+				highscore_save += "\n";
+			}
+			counter++;
+			if (counter > 9) break;
+		}
+		file.close();
+
+		// saves the new results if changes happens
+		if (!no_score) {
+			std::ofstream newFile("score.txt");
+
+			if (newFile.is_open()) {
+				newFile << highscore_save;
+			}
+			newFile.close();
+		}
+
+		return highscore;
 	}
 
   public:
@@ -338,12 +420,15 @@ namespace octet {
 			// create a box containing text (in pixels)
 			aabb Rtext_aabb(vec3(600.0f, 150.0f, 0.0f), vec3(256, 128, 0));
 			aabb Ltext_aabb(vec3(-150.0f, 150.0f, 0.0f), vec3(256, 128, 0));
+			aabb Ctext_aabb(vec3(150.0f, -50.0f, 0.0f), vec3(256, 128, 0));
 			right_text = new mesh_text(font, "---", &Rtext_aabb);
 			left_text = new mesh_text(font, "---", &Ltext_aabb);
+			center_text = new mesh_text(font, "---", &Ctext_aabb);
 
 			// add the mesh to the overlay.
 			overlay->add_mesh_text(right_text);
 			overlay->add_mesh_text(left_text);
+			overlay->add_mesh_text(center_text);
 		}
 
 		// sounds from class
@@ -352,8 +437,9 @@ namespace octet {
 			game_sounds.init_sound();
 		}
 
-		engine = new Engine(0, Engine::State::INIT);
-		//printf("engine %d\n", engine->GetState());
+		engine = new Engine(1000, Engine::State::ROLL);
+		// just to demonstrate that highscore works have to change above INIT to HALL_OF_FAME and uncoment below
+		//view_score = record_score(999, "Goncalo"); 
 	}
 
     /// this is called to draw the world
@@ -365,38 +451,42 @@ namespace octet {
 	  scene_node *cam_node = app_scene->get_camera_instance(0)->get_node();
 	  mat4t &cam_to_world = cam_node->access_nodeToParent();
 
+	  // game logic
 	  switch (engine->GetState()) {
 		case (Engine::State::GAME_START) : 
 			left_text->clear();
 			left_text->format("%s\n", content[1]);
 			right_text->clear();
 			right_text->format("%s %d\n", content[5], engine->GetScore());
+			center_text->clear();
 			mouse_look_helper.update(cam_to_world);
 			fps_helper.update(player_node, cam_node);
-			// if gets into ball contact
-			//if (engine->GetScore() <= 0) {
-			//	game_sounds.playSoundEnd();
-			//	engine->SetState(Engine::State::ROLL);
-			//}
+			// if (player gets into ball contact) engine->SetState(Engine::State::ROLL);
 			break;
 		case (Engine::State::ROLL) :
 			left_text->clear();
 			left_text->format("%s\n", content[2]);
 			right_text->clear();
 			right_text->format("%s %d\n", content[5], engine->GetScore());
+			center_text->clear();
 			mouse_look_helper.update(cam_to_world);
 			fps_helper.update(player_node, cam_node);
+			// if (reached gate point) {
+			// record_score(engine->GetScore(), "Player1");
+			// engine->SetState(Engine::State::HALL_OF_FAME);
+			// }
+			// if (collide building) engine->SetScore(engine->GetScore()-100);
 			if (engine->GetScore() <= 0) {
 				game_sounds.playSoundEnd();
 				engine->SetState(Engine::State::GAME_END);
 			}
-			// check if reached gate point
 			break;
 		case (Engine::State::GAME_END) :
 			left_text->clear();
 			left_text->format("%s\n", content[3]);
 			right_text->clear();
 			right_text->format("%s\n", content[6]);
+			center_text->clear();
 			start_game();
 			break;
 		case (Engine::State::HALL_OF_FAME) :
@@ -404,6 +494,8 @@ namespace octet {
 			left_text->format("%s\n", content[4]);
 			right_text->clear();
 			right_text->format("%s\n", content[6]);
+			center_text->clear();
+			center_text->format("%s\n", view_score);
 			start_game();
 			break;	
 		case (Engine::State::INIT) :
@@ -411,6 +503,7 @@ namespace octet {
 			left_text->format("%s\n", content[0]);
 			right_text->clear();
 			right_text->format("%s\n", content[0]);
+			center_text->clear();
 			start_game();
 			break;
 		default :
@@ -427,6 +520,7 @@ namespace octet {
 	  // convert it to a mesh.
 	  right_text->update();
 	  left_text->update();
+	  center_text->update();
 
 	  // draw the text overlay
 	  overlay->render(vx, vy);
